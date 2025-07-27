@@ -1,0 +1,24 @@
+FROM eclipse-temurin:21-jdk-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy only necessary build files first (improves layer caching)
+COPY mvnw pom.xml ./
+COPY .mvn .mvn
+
+# Copy application source
+COPY src src
+
+# Build application and clean up in single layer
+RUN ./mvnw clean package -DskipTests && \
+    mv target/*.jar app.jar && \
+    rm -rf src .mvn mvnw pom.xml target /var/lib/apt/lists/*
+
+# Security: Run as non-root user
+RUN addgroup --system spring && adduser --system --ingroup spring spring
+USER spring:spring
+
+# Runtime configuration
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
