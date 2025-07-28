@@ -1,22 +1,31 @@
 FROM bellsoft/liberica-runtime-container:jdk-21-musl as builder
 
 WORKDIR /app
+
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 COPY src src
 
-FROM builder as package
+RUN ./mvnw clean package -DskipTests
+
+FROM bellsoft/liberica-runtime-container:jre-21-slim-musl AS optimizer
 
 WORKDIR /app
 
-RUN ./mvnw clean package -DskipTests
+COPY --from=builder /app/target/*.jar app.jar
+
+RUN java -Djarmode=tools -jar app.jar extract --layers --destination extracted
 
 FROM bellsoft/liberica-runtime-container:jre-21-slim-musl AS final
 
 WORKDIR /app
 
 EXPOSE 8080
-COPY --from=package /app/target/*.jar /app/app.jar
+
+COPY --from=optimizer /app/extracted/dependencies/ ./
+COPY --from=optimizer /app/extracted/spring-boot-loader/ ./
+COPY --from=optimizer /app/extracted/snapshot-dependencies/ ./
+COPY --from=optimizer /app/extracted/application/ ./
 
 RUN rm -rf src .mvn mvnw pom.xml target /var/cache/apk/*
 
