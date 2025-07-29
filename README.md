@@ -87,12 +87,12 @@ The application exposes two simple REST endpoints:
 
 This project explores different Docker base images and build strategies to optimize the final container size. The table below shows the comparison of different approaches:
 
-| Image Name | Base Image | Build Strategy | Final Image Size | Notes |
-|------------|------------|----------------|-----------------|-------|
-| eclipse-temurin | 21-jdk-alpine | Single-stage | 738.76 MB | Largest image size, includes full JDK |
-| eclipse-temurin | 21-jdk-alpine (build)<br>21-jre-alpine (runtime) | Multi-stage | 321.53 MB | 56% smaller than single-stage |
-| bellsoft/liberica-runtime-container | jdk-21-musl | Single-stage | 387.25 MB | Smaller than Temurin single-stage |
-| bellsoft/liberica-runtime-container | jdk-21-musl (build)<br>jre-21-slim-musl (runtime) | Multi-stage | 219.98 MB | Smallest image, 70% reduction from largest |
+| Image Name | Base Image | Build Strategy | Final Image Size | After using docker slim | Notes |
+|------------|------------|----------------|-----------------|-----------------|-------|
+| eclipse-temurin | 21-jdk-alpine | Single-stage | 738.76 MB | 299.32 MB | Largest image size, includes full JDK |
+| eclipse-temurin | 21-jdk-alpine (build)<br>21-jre-alpine (runtime) | Multi-stage | 321.53 MB | 239.79 MB | 56% smaller than single-stage |
+| bellsoft/liberica-runtime-container | jdk-21-musl | Single-stage | 387.25 MB | 198.58 MB | Smaller than Temurin single-stage |
+| bellsoft/liberica-runtime-container | jdk-21-musl (build)<br>jre-21-slim-musl (runtime) | Multi-stage | 219.98 MB | 214.37MB | Smallest image, 70% reduction from largest |
 
 ### Key Optimization Techniques
 
@@ -101,6 +101,7 @@ This project explores different Docker base images and build strategies to optim
 3. **Layer optimization**: Extracting and organizing application into layers
 4. **Alpine/Musl-based images**: Using lightweight base images
 5. **Cleanup**: Removing unnecessary build artifacts and cache
+6. **Docker slim**: Using docker slim can reduce image size significantly, but it requires caution
 
 ## Project Structure
 
