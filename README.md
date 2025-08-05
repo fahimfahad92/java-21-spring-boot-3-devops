@@ -157,6 +157,63 @@ docker rm -f demo-app-crac
 docker run -it --rm -p 8080:8080 --cap-add CHECKPOINT_RESTORE --cap-add SYS_PTRACE --name demo-app-crac --entrypoint java demo-app-crac-restore -XX:CRaCRestoreFrom=/checkpoint
 ```
 
+## CDS for Spring Boot Application
+
+### What is Class Data Sharing (CDS)?
+
+Class Data Sharing (CDS) is a JVM feature that improves startup time and reduces memory footprint by:
+- Pre-processing and storing class metadata in an archive file
+- Sharing this metadata across multiple JVM instances
+- Reducing the time needed for class loading during application startup
+
+CDS is particularly beneficial for containerized Spring Boot applications, as it can significantly reduce startup times in environments where quick scaling is important.
+
+### Prerequisites
+
+1. Enable AOT (Ahead-of-Time) processing in pom.xml:
+
+```xml
+<plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <executions>
+        <execution>
+            <id>process-aot</id>
+            <goals>
+                <goal>process-aot</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+2. Use a JDK/JRE that supports CDS (like BellSoft Liberica JDK/JRE with CDS support)
+
+### Using CDS with Docker
+
+This project includes a specialized Dockerfile (`Dockerfile-liberica-cds`) that sets up the environment for CDS. The key components of this Dockerfile are:
+
+1. Using BellSoft Liberica JRE with CDS support
+2. Creating a CDS archive during container build with:
+   ```
+   java -XX:ArchiveClassesAtExit=./application.jsa -Dspring.context.exit=onRefresh -jar app.jar
+   ```
+3. Configuring the application to use the CDS archive at startup with:
+   ```
+   -XX:SharedArchiveFile=application.jsa
+   ```
+
+### Building and Running with CDS
+
+```bash
+# Step 1: Build the Docker image with CDS support
+docker build . -t demo-app-liberica-cds -f Dockerfile-liberica-cds
+
+# Step 2: Run the container
+# Notice the improved startup time compared to non-CDS containers
+docker run -p 8080:8080 --name demo demo-app-liberica-cds
+```
+
 ## Project Structure
 
 ```

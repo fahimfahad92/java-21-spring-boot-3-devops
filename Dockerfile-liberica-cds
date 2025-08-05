@@ -1,0 +1,27 @@
+FROM bellsoft/liberica-runtime-container:jdk-21-cds-musl as builder
+
+WORKDIR /app
+
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+COPY src src
+
+RUN ./mvnw clean package -DskipTests
+
+FROM bellsoft/liberica-runtime-container:jre-21-cds-slim-musl as optimizer
+
+WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
+RUN java -Djarmode=tools -jar app.jar extract --layers --destination extracted
+
+FROM bellsoft/liberica-runtime-container:jre-21-cds-slim-musl
+
+ENTRYPOINT ["java", "-Dspring.aot.enabled=true", "-XX:SharedArchiveFile=application.jsa", "-jar", "/app/app.jar"]
+
+WORKDIR /app
+COPY --from=optimizer /app/extracted/dependencies/ ./
+COPY --from=optimizer /app/extracted/spring-boot-loader/ ./
+COPY --from=optimizer /app/extracted/snapshot-dependencies/ ./
+COPY --from=optimizer /app/extracted/application/ ./
+
+RUN java -Dspring.aot.enabled=true -XX:ArchiveClassesAtExit=./application.jsa -Dspring.context.exit=onRefresh -jar /app/app.jar
