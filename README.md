@@ -103,6 +103,60 @@ This project explores different Docker base images and build strategies to optim
 5. **Cleanup**: Removing unnecessary build artifacts and cache
 6. **Docker slim**: Using docker slim can reduce image size significantly, but it requires caution
 
+## CRaC for Spring Boot Application
+
+### What is CRaC?
+
+CRaC (Coordinated Restore at Checkpoint) is a technology that significantly reduces application startup time by creating a checkpoint of a running application and later restoring it from that checkpoint. This is particularly beneficial for Java applications, which traditionally have longer startup times compared to other technologies.
+
+### Benefits of CRaC
+
+- **Dramatically reduced startup times**: Applications can start in milliseconds instead of seconds or minutes
+- **Warm application state**: The application is restored with a warm state, including initialized caches and connections
+- **Lower resource usage during startup**: Less CPU and memory consumption during the restore phase
+- **Improved user experience**: Faster application availability after deployment or scaling events
+
+### Implementation Requirements
+
+To use CRaC with Spring Boot, you need:
+
+1. Add the CRaC dependency to your pom.xml:
+
+```xml
+<dependency>
+    <groupId>org.crac</groupId>
+    <artifactId>crac</artifactId>
+    <version>1.4.0</version>
+</dependency>
+```
+
+2. Use a JDK/JRE that supports CRaC (like BellSoft Liberica JDK/JRE with CRaC support)
+3. Configure your application to create checkpoints at appropriate times
+
+### Using CRaC with Docker
+
+This project includes a specialized Dockerfile (`Dockerfile-liberica-crac`) that sets up the environment for CRaC. The following steps demonstrate how to build, checkpoint, and restore the application:
+
+```bash
+# Step 1: Build the Docker image with CRaC support
+docker build . -t demo-app-crac -f Dockerfile-liberica-crac
+
+# Step 2: Run the container with required capabilities
+# This will start the application and create a checkpoint
+docker run --cap-add CHECKPOINT_RESTORE --cap-add SYS_PTRACE --name demo-app-crac demo-app-crac
+
+# Step 3: Create a new image from the container with the checkpoint
+# This image will be configured to restore from the checkpoint on startup
+docker commit --change='ENTRYPOINT ["java", "-XX:CRaCRestoreFrom=/checkpoint"]' demo-app-crac demo-app-crac-restore
+
+# Step 4: Remove the original container
+docker rm -f demo-app-crac
+
+# Step 5: Run the application from the checkpoint
+# Notice how quickly the application starts up!
+docker run -it --rm -p 8080:8080 --cap-add CHECKPOINT_RESTORE --cap-add SYS_PTRACE --name demo-app-crac --entrypoint java demo-app-crac-restore -XX:CRaCRestoreFrom=/checkpoint
+```
+
 ## Project Structure
 
 ```

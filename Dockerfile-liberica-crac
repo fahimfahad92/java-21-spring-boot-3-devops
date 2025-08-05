@@ -1,0 +1,30 @@
+FROM bellsoft/liberica-runtime-container:jdk-21-crac-musl as builder
+
+WORKDIR /app
+
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+COPY src src
+
+RUN ./mvnw clean package -DskipTests
+
+FROM bellsoft/liberica-runtime-container:jre-21-crac-slim-musl as optimizer
+
+WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
+
+RUN java -Djarmode=tools -jar app.jar extract --layers --launcher
+
+FROM bellsoft/liberica-runtime-container:jre-21-crac-slim-musl
+
+# We stay root in a container to use CRaC
+
+VOLUME /tmp
+EXPOSE 8080
+
+COPY --from=optimizer /app/app/dependencies/ ./
+COPY --from=optimizer /app/app/spring-boot-loader/ ./
+COPY --from=optimizer /app/app/snapshot-dependencies/ ./
+COPY --from=optimizer /app/app/application/ ./
+
+ENTRYPOINT ["java", "-Dspring.context.checkpoint=onRefresh", "-XX:CRaCCheckpointTo=/checkpoint", "-XX:MaxRAMPercentage=80.0", "org.springframework.boot.loader.launch.JarLauncher"]
