@@ -1,4 +1,4 @@
-name: Push to ECR with OIDC
+name: Push to ECR
 on: push
 
 jobs:
@@ -21,8 +21,11 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image
+      - name: Build Docker image
         run: |
-          docker build . -t demo-app -f  Dockerfile-liberica-multi-stage
+          docker build . -t demo-app -f Dockerfile-liberica-multi-stage
+
+      - name: Push image to Amazon ECR
+        run: |
           docker tag demo-app:latest ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
           docker push ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
