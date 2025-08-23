@@ -22,8 +22,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build Docker image
-        run: |
-          docker build . -t demo-app -f Dockerfile-liberica-multi-stage
+        run: docker build . -t demo-app -f Dockerfile-liberica-multi-stage
 
       - name: Push image to Amazon ECR
         run: |
