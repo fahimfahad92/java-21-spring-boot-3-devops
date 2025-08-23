@@ -1,5 +1,7 @@
 name: Push to ECR
-on: push
+on:
+  push:
+    branches: [ "main" ]
 
 jobs:
   deploy:
