@@ -27,14 +27,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Push Docker image with cache
+      - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile-liberica-multi-stage
-          push: true
-          tags: |
-            ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
-            ${{ steps.login-ecr.outputs.registry }}/demo-app:${{ github.sha }}
+          push: false
+          load: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
           cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/demo-app:buildcache
           cache-to: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/demo-app:buildcache,mode=max
+
+      - name: Push Docker image
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
