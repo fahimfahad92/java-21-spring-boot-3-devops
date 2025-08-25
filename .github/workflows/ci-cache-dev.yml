@@ -1,7 +1,7 @@
 name: Push to ECR with cache
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
   deploy:
