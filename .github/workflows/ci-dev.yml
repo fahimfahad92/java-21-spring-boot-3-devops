@@ -9,7 +9,6 @@ jobs:
     permissions:
       id-token: write  # Required for OIDC
       contents: read   # Required for checkout
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,26 +16,17 @@ jobs:
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::568560058349:role/GHA-ECR-PUSH
+          role-to-assume: arn:aws:iam::123456789:role/GitHub-Action-ECR-Push
           aws-region: ap-southeast-1
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile-liberica-multi-stage
-          push: false
-          load: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
-          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/demo-app:buildcache
-          cache-to: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/demo-app:buildcache,mode=max
+        run: docker build . -t demo-app -f Dockerfile-liberica-multi-stage
 
-      - name: Push Docker image
-        run: docker push ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
+      - name: Push image to Amazon ECR
+        run: |
+          docker tag demo-app:latest ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
+          docker push ${{ steps.login-ecr.outputs.registry }}/demo-app:latest
