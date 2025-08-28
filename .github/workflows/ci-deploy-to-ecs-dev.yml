@@ -6,7 +6,7 @@ on:
 env:
   AWS_REGION: ap-southeast-1
   ECR_REPO: demo-app
-  ECS_CLUSTER: demo-app
+  ECS_CLUSTER: demo-app-cluster
   ECS_SERVICE: demo-app-service
   DOCKER_FILE: Dockerfile-liberica-multi-stage
   IAM_ROLE: arn:aws:iam::568560058349:role/GH-ECS-DEPLOY
