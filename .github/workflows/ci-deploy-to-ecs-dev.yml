@@ -8,6 +8,8 @@ env:
   ECR_REPO: demo-app
   ECS_CLUSTER: demo-app-cluster
   ECS_SERVICE: demo-app-service
+  DOCKER_FILE: Dockerfile-liberica-multi-stage
+  IAM_ROLE: arn:aws:iam::568560058349:role/GH-ECS-DEPLOY
 
 jobs:
   deploy:
@@ -23,7 +25,7 @@ jobs:
       - name: Configure AWS Credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::568560058349:role/GH-ECS-DEPLOY
+          role-to-assume: ${{ env.IAM_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -37,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.run_id }}
+          key: ${{ runner.os }}-buildx-${{ github.repository }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
@@ -45,14 +47,14 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile-liberica-multi-stage
+          file: ${{ env.DOCKER_FILE }}
           push: false
           load: true
           tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
-      - name: Push Docker image
+      - name: Push Docker image to ECR
         run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:latest
 
       - name: Move cache for next build
@@ -60,7 +62,7 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache            
 
-      - name: Force new ECS deployment
+      - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster ${{ env.ECS_CLUSTER }} \
