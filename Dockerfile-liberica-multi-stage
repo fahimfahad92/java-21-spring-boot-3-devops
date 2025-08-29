@@ -10,6 +10,8 @@ RUN ./mvnw dependency:go-offline -DskipTests
 
 FROM bellsoft/liberica-runtime-container:jdk-21-musl as builder
 
+WORKDIR /app
+
 COPY src src
 
 RUN ./mvnw clean package -DskipTests
