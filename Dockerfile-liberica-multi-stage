@@ -2,30 +2,24 @@ FROM bellsoft/liberica-runtime-container:jdk-21-musl as dependency
 
 WORKDIR /app
 
-# Copy Maven wrapper + pom.xml first (so dependency caching works)
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 RUN chmod +x mvnw
 
-# Download dependencies only (cacheable layer)
 RUN ./mvnw dependency:go-offline -DskipTests
 
 FROM bellsoft/liberica-runtime-container:jdk-21-musl as builder
 
 WORKDIR /app
 
-# Copy Maven wrapper + pom.xml again (needed to run mvnw here)
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 RUN chmod +x mvnw
 
-# Copy the already cached dependencies from previous stage
 COPY --from=dependency /root/.m2 /root/.m2
 
-# Copy source code
 COPY src src
 
-# Build application
 RUN ./mvnw clean package -DskipTests
 
 FROM bellsoft/liberica-runtime-container:jre-21-slim-musl AS optimizer
