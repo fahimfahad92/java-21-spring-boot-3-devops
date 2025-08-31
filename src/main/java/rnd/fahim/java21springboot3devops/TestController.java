@@ -17,4 +17,9 @@ public class TestController {
     public ResponseDto welcome() {
         return new ResponseDto("Welcome to Spring Boot 3.5 at " + LocalDateTime.now());
     }
+
+    @GetMapping("/welcome2")
+    public ResponseDto welcome2() {
+        return new ResponseDto("Welcome 2 to Spring Boot 3.5 at " + LocalDateTime.now());
+    }
 }
