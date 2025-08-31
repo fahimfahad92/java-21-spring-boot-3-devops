@@ -4,6 +4,34 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.4-green)
 ![Docker](https://img.shields.io/badge/Docker-Optimized-blue)
 
+## Table of Contents
+Quick links to navigate this README.
+
+- [Overview](#overview)
+- [Technologies Used](#technologies-used)
+- [Prerequisites](#prerequisites)
+- [Setup and Installation](#setup-and-installation)
+  - [Local Development](#local-development)
+  - [Docker Deployment](#docker-deployment)
+- [API Endpoints](#api-endpoints)
+- [Docker Optimization Results](#docker-optimization-results)
+  - [Key Optimization Techniques](#key-optimization-techniques)
+- [CRaC for Spring Boot Application](#crac-for-spring-boot-application)
+  - [What is CRaC?](#what-is-crac)
+  - [Benefits of CRaC](#benefits-of-crac)
+  - [Implementation Requirements](#implementation-requirements)
+  - [Using CRaC with Docker](#using-crac-with-docker)
+- [CDS for Spring Boot Application](#cds-for-spring-boot-application)
+  - [What is Class Data Sharing (CDS)?](#what-is-class-data-sharing-cds)
+  - [Using CDS with Docker](#using-cds-with-docker)
+  - [Building and Running with CDS](#building-and-running-with-cds)
+- [CI/CD with GitHub Actions](#cicd-with-github-actions)
+- [Project Structure](#project-structure)
+- [Usage Examples](#usage-examples)
+  - [Testing the API with curl](#testing-the-api-with-curl)
+  - [Running with Different Docker Images](#running-with-different-docker-images)
+- [License](#license)
+
 ## Overview
 
 This project demonstrates DevOps practices and Docker optimization techniques for a Spring Boot 3.5.4 application running on Java 21. It serves as a research and development project to explore various containerization approaches and their impact on final image size.
