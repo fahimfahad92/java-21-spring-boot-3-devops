@@ -214,6 +214,57 @@ docker build . -t demo-app-liberica-cds -f Dockerfile-liberica-cds
 docker run -p 8080:8080 --name demo demo-app-liberica-cds
 ```
 
+## CI/CD with GitHub Actions
+
+This repository includes GitHub Actions workflows to automate container builds, image publishing to Amazon ECR, and deployments to Amazon ECS. All workflows currently run on push events to the master branch. They use GitHub OIDC to assume AWS IAM roles without storing long‑lived AWS credentials.
+
+- Push to ECR (.github/workflows/ci-dev.yml)
+  - Trigger: push on master
+  - Purpose: Build the Docker image and push demo-app:latest to Amazon ECR
+  - Key steps:
+    - actions/checkout@v4
+    - aws-actions/configure-aws-credentials@v4 (assume role arn:aws:iam::568560058349:role/GHA-ECR-PUSH; region ap-southeast-1)
+    - aws-actions/amazon-ecr-login@v2
+    - docker build -f Dockerfile-liberica-multi-stage -t demo-app:latest .
+    - docker tag and docker push to <account>.dkr.ecr.ap-southeast-1.amazonaws.com/demo-app:latest
+
+- Push to ECR with cache (.github/workflows/ci-cache-dev.yml)
+  - Trigger: push on master
+  - Purpose: Same as above but optimized with Docker Buildx and a persistent cache to speed up subsequent builds
+  - Key steps:
+    - actions/checkout@v4
+    - aws-actions/configure-aws-credentials@v4 (role: GHA-ECR-PUSH)
+    - aws-actions/amazon-ecr-login@v2
+    - docker/setup-buildx-action@v3
+    - actions/cache@v4 for /tmp/.buildx-cache
+    - docker/build-push-action@v6 with cache-from/cache-to, load: true, tags: <ECR_REGISTRY>/demo-app:latest
+    - docker push
+
+- Deploy to ECS (.github/workflows/ci-deploy-to-ecs-dev.yml)
+  - Trigger: push on master
+  - Purpose: Build and push the image, then trigger a new deployment on Amazon ECS
+  - Environment variables:
+    - AWS_REGION: ap-southeast-1
+    - ECR_REPO: demo-app
+    - ECS_CLUSTER: demo-app-cluster
+    - ECS_SERVICE: demo-app-service
+    - DOCKER_FILE: Dockerfile-liberica-multi-stage
+    - IAM_ROLE: arn:aws:iam::568560058349:role/GH-ECS-DEPLOY
+  - Key steps:
+    - actions/checkout@v4
+    - aws-actions/configure-aws-credentials@v4 (assume IAM_ROLE via OIDC)
+    - aws-actions/amazon-ecr-login@v2
+    - docker/setup-buildx-action@v3 + actions/cache@v4 for layer caching
+    - docker/build-push-action@v6 (build) and docker push to ECR
+    - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
+
+Notes and prerequisites
+- AWS: The referenced IAM roles (GHA-ECR-PUSH and GH-ECS-DEPLOY) must exist with permissions to push to ECR and deploy to ECS respectively.
+- ECR repository: demo-app must exist in the target AWS account/region.
+- ECS: demo-app-cluster and demo-app-service should already be provisioned; the service must reference the ECR image demo-app:latest.
+- Dockerfile: All workflows build using Dockerfile-liberica-multi-stage by default.
+- Manual runs: These workflows are configured for push events. If you want manual triggers, add a workflow_dispatch block to the respective YAML files.
+
 ## Project Structure
 
 ```
@@ -267,4 +318,4 @@ This project is created for research and development purposes.
 
 ---
 
-Last updated: July 28, 2025
+Last updated: August 31, 2025
