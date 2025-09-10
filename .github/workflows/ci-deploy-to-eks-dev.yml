@@ -8,7 +8,6 @@ env:
   ECR_REPO: demo-app
   DOCKER_FILE: Dockerfile-liberica-multi-stage
   IAM_ROLE: arn:aws:iam::568560058349:role/GH-EKS-DEPLOY
-  GIT_SHA: ${ github.sha::7 }
 
 jobs:
   deploy:
@@ -41,6 +40,9 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.repository }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+            
+      - name: Set short SHA
+        run: echo "GIT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
       - name: Build Docker image
         uses: docker/build-push-action@v6
