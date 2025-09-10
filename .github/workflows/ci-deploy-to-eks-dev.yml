@@ -8,6 +8,8 @@ env:
   ECR_REPO: demo-app
   DOCKER_FILE: Dockerfile-liberica-multi-stage
   IAM_ROLE: arn:aws:iam::568560058349:role/GH-EKS-DEPLOY
+  CLUSTER_NAME: demo-app-cluster
+  NAMESPACE: default
 
 jobs:
   deploy:
@@ -41,7 +43,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
             
-      - name: Set short SHA
+      - name: Get Short SHA
         run: echo "GIT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
       - name: Build Docker image
@@ -62,7 +64,18 @@ jobs:
           docker push $REPO:$IMAGE_TAG
           echo "IMAGE=$REPO:$IMAGE_TAG" >> $GITHUB_ENV
 
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{env.AWS_REGION}}
+
+      - name: Set image & apply manifests
+        run: |
+          sed -i "s#568560058349.dkr.ecr.ap-southeast-1.amazonaws.com/${ECR_REPO}:latest#${IMAGE}#g" k8s.yaml
+          kubectl apply -f k8s.yaml
+
       - name: Move cache for next build
         run: |
           rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache            
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache 
+
+      - name: Wait for rollout
+        run: kubectl rollout status deploy/${ECR_REPO} -n ${NAMESPACE} --timeout=180s
