@@ -8,6 +8,7 @@ env:
   ECR_REPO: demo-app
   DOCKER_FILE: Dockerfile-liberica-multi-stage
   IAM_ROLE: arn:aws:iam::568560058349:role/GH-EKS-DEPLOY
+  GIT_SHA: ${ github.sha::7 }
 
 jobs:
   deploy:
@@ -48,13 +49,13 @@ jobs:
           file: ${{ env.DOCKER_FILE }}
           push: false
           load: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ github.sha::7 }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ env.GIT_SHA }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
       - name: Push Docker image to ECR
         run: |
-          IMAGE_TAG=${GITHUB_SHA::7}
+          IMAGE_TAG=${{env.GIT_SHA}}
           REPO=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}
           docker push $REPO:$IMAGE_TAG
           echo "IMAGE=$REPO:$IMAGE_TAG" >> $GITHUB_ENV
