@@ -69,8 +69,8 @@ jobs:
 
       - name: Set image & apply manifests
         run: |
-          sed -i "s#568560058349.dkr.ecr.ap-southeast-1.amazonaws.com/${ECR_REPO}:latest#${IMAGE}#g" k8s.yaml
-          kubectl apply -f k8s.yaml
+          sed -i "s#568560058349.dkr.ecr.ap-southeast-1.amazonaws.com/${ECR_REPO}:latest#${IMAGE}#g" k8s/demo-app.yaml
+          kubectl apply -f k8s/demo-app.yaml
 
       - name: Move cache for next build
         run: |

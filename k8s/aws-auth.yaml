@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: aws-auth
-  namespace: default
+  namespace: kube-system
 data:
   mapRoles: |
     - rolearn: arn:aws:iam::568560058349:role/GH-EKS-DEPLOY
