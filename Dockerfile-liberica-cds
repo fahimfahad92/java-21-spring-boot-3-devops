@@ -1,9 +1,23 @@
+FROM bellsoft/liberica-runtime-container:jdk-21-cds-musl as dependency
+
+WORKDIR /app
+
+COPY .mvn/ .mvn
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw
+
+RUN ./mvnw dependency:go-offline -DskipTests
+
 FROM bellsoft/liberica-runtime-container:jdk-21-cds-musl as builder
 
 WORKDIR /app
 
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
+RUN chmod +x mvnw
+
+COPY --from=dependency /root/.m2 /root/.m2
+
 COPY src src
 
 RUN ./mvnw clean package -DskipTests

@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy only necessary build files first (improves layer caching)
 COPY mvnw pom.xml ./
 COPY .mvn .mvn
+RUN chmod +x mvnw
 
 # Copy application source
 COPY src src
