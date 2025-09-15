@@ -1,0 +1,29 @@
+name: Weekly Cache Clear
+
+on:
+  schedule:
+    # Runs every Sunday at midnight UTC
+    - cron: "0 0 * * 0"
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate cache-busting key
+        id: cache-key
+        run: echo "key=weekly-cache-$(date +'%Y-%V')" >> $GITHUB_OUTPUT
+        # %Y = year, %V = ISO week number (changes every week)
+
+      - name: Create dummy cache
+        uses: actions/cache@v4
+        with:
+          path: cache-dummy
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Confirm cache refresh
+        run: echo "New cache key created: ${{ steps.cache-key.outputs.key }}"
