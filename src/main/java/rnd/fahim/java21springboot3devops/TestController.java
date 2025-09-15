@@ -3,9 +3,8 @@ package rnd.fahim.java21springboot3devops;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.time.LocalDateTime;
 
 @RestController
 public class TestController {
@@ -17,15 +16,14 @@ public class TestController {
 
     @GetMapping("/welcome")
     public ResponseDto welcome() {
-        String ip = "NONE";
+        return new ResponseDto("Welcome to Spring Boot 3.5 at " + LocalDateTime.now() + " IP address " + getLocalIpAddress());
+    }
+
+    String getLocalIpAddress() {
         try {
-            InetAddress ipAddress = InetAddress.getLocalHost();
-            ip = ipAddress.getHostAddress();
-        } catch (UnknownHostException e) {
-            // Handle the exception, e.g., log it or return a default value
-           
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            return "NONE";
         }
-        
-        return new ResponseDto("Welcome to Spring Boot 3.5 at " + LocalDateTime.now() + " IP address " + ip);
     }
 }
