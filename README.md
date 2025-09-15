@@ -244,7 +244,134 @@ docker run -p 8080:8080 --name demo demo-app-liberica-cds
 
 ## CI/CD with GitHub Actions
 
-This repository includes GitHub Actions workflows to automate container builds, image publishing to Amazon ECR, and deployments to Amazon ECS. All workflows currently run on push events to the master branch. They use GitHub OIDC to assume AWS IAM roles without storing long‑lived AWS credentials.
+This repository includes comprehensive GitHub Actions workflows to automate container builds, image publishing to Amazon ECR, and deployments to both Amazon ECS and EKS. All workflows are triggered on push events to the master branch and use GitHub OIDC to assume AWS IAM roles without storing long-lived AWS credentials.
+
+### Available Workflows
+
+#### 1. Push to ECR (`ci-dev.yml`)
+**Purpose**: Basic Docker image build and push to Amazon ECR without optimization features.
+
+**Trigger**: Push to `master` branch
+
+**Key Features**:
+- Uses GitHub OIDC for secure AWS authentication
+- Builds using `Dockerfile-liberica-multi-stage` for optimal image size
+- Tags and pushes as `demo-app:latest` to ECR
+
+**Workflow Steps**:
+1. **Checkout**: Uses `actions/checkout@v4` to fetch repository code
+2. **AWS Authentication**: Uses `aws-actions/configure-aws-credentials@v4` with OIDC to assume the `GHA-ECR-PUSH` role in region `ap-southeast-1`
+3. **ECR Login**: Uses `aws-actions/amazon-ecr-login@v2` to authenticate with Amazon ECR
+4. **Build**: Executes `docker build . -t demo-app -f Dockerfile-liberica-multi-stage`
+5. **Push**: Tags and pushes the image to ECR registry as `demo-app:latest`
+
+#### 2. Push to ECR with Cache (`ci-cache-dev.yml`)
+**Purpose**: Optimized Docker image build with GitHub Actions caching to speed up subsequent builds.
+
+**Trigger**: Push to `master` branch
+
+**Key Features**:
+- Docker Buildx for advanced build features
+- GitHub Actions cache integration for Docker layers
+- Concurrency control to prevent conflicting builds
+- Multiple image tagging (SHA and latest)
+
+**Environment Variables**:
+- `AWS_REGION`: ap-southeast-1
+- `ECR_REPO`: demo-app
+- `ECS_CLUSTER`: demo-app-cluster
+- `ECS_SERVICE`: demo-app-service
+- `DOCKER_FILE`: Dockerfile-liberica-multi-stage
+- `IAM_ROLE`: arn:aws:iam::568560058349:role/GH-ECS-DEPLOY
+
+**Workflow Steps**:
+1. **Checkout**: Repository code checkout
+2. **AWS Authentication**: OIDC-based authentication using the `GH-ECS-DEPLOY` role
+3. **ECR Login**: Amazon ECR authentication
+4. **Docker Buildx Setup**: Uses `docker/setup-buildx-action@v3` for advanced build capabilities
+5. **Cached Build**: Uses `docker/build-push-action@v6` with GitHub Actions cache (`cache-from: type=gha`, `cache-to: type=gha,mode=max`)
+6. **Multi-tag Push**: Pushes both SHA-based and latest tags to ECR
+
+#### 3. Deploy to ECS (`ci-deploy-to-ecs-dev.yml`)
+**Purpose**: Complete CI/CD pipeline that builds, pushes, and deploys to Amazon ECS with service stability verification.
+
+**Trigger**: Push to `master` branch
+
+**Key Features**:
+- End-to-end deployment to Amazon ECS
+- Service stability verification
+- Concurrency control with `cancel-in-progress: true`
+- Force deployment to ensure latest image is used
+
+**Workflow Steps**:
+1. **Checkout**: Repository code checkout
+2. **AWS Authentication**: OIDC authentication using `GH-ECS-DEPLOY` role
+3. **ECR Login**: Amazon ECR authentication
+4. **Docker Buildx Setup**: Advanced Docker build setup
+5. **Cached Build**: Optimized build with GitHub Actions caching
+6. **Multi-tag Push**: Pushes images with both commit SHA and latest tags
+7. **ECS Deployment**: Executes `aws ecs update-service --force-new-deployment` to trigger rolling update
+8. **Stability Check**: Uses `aws ecs wait services-stable` to ensure deployment completes successfully
+
+#### 4. Deploy to EKS (`ci-deploy-to-eks-dev.yml`)
+**Purpose**: Complete CI/CD pipeline for Kubernetes deployment on Amazon EKS with manifest updates and rollout verification.
+
+**Trigger**: Push to `master` branch
+
+**Key Features**:
+- Kubernetes deployment to Amazon EKS
+- Dynamic image tag updates in Kubernetes manifests
+- Rollout status verification
+- Docker layer caching optimization
+
+**Environment Variables**:
+- `AWS_REGION`: ap-southeast-1
+- `ECR_REPO`: demo-app
+- `DOCKER_FILE`: Dockerfile-liberica-multi-stage
+- `IAM_ROLE`: arn:aws:iam::568560058349:role/GH-EKS-DEPLOY
+- `CLUSTER_NAME`: demo-app-cluster
+- `NAMESPACE`: default
+
+**Workflow Steps**:
+1. **Checkout**: Repository code checkout
+2. **AWS Authentication**: OIDC authentication using `GH-EKS-DEPLOY` role
+3. **ECR Login**: Amazon ECR authentication
+4. **Docker Buildx Setup**: Advanced Docker build capabilities
+5. **Cache Management**: Uses `actions/cache@v4` for Docker layer caching with `/tmp/.buildx-cache`
+6. **Short SHA Generation**: Creates a 7-character commit SHA for image tagging
+7. **Cached Build**: Builds image with local cache optimization
+8. **ECR Push**: Pushes image tagged with commit SHA
+9. **Kubectl Configuration**: Updates kubeconfig using `aws eks update-kubeconfig`
+10. **Manifest Update**: Uses `sed` to update the image reference in `k8s/demo-app.yaml`
+11. **Kubernetes Apply**: Applies updated manifests using `kubectl apply`
+12. **Cache Rotation**: Moves new cache to replace old cache for next build
+13. **Rollout Verification**: Uses `kubectl rollout status` with 180-second timeout
+
+### Prerequisites and Setup
+
+**AWS Infrastructure Requirements**:
+- **IAM Roles**: 
+  - `GHA-ECR-PUSH`: Permissions for ECR push operations
+  - `GH-ECS-DEPLOY`: Permissions for ECR push and ECS deployment
+  - `GH-EKS-DEPLOY`: Permissions for ECR push and EKS deployment
+- **ECR Repository**: `demo-app` must exist in the target AWS account/region
+- **ECS Infrastructure**: 
+  - Cluster: `demo-app-cluster`
+  - Service: `demo-app-service` (must reference the ECR image `demo-app:latest`)
+- **EKS Infrastructure**:
+  - Cluster: `demo-app-cluster`
+  - Kubernetes manifests in `k8s/` directory
+
+**GitHub Configuration**:
+- OIDC provider configured for GitHub Actions
+- Repository secrets and variables configured for AWS authentication
+- Branch protection rules for `master` branch (optional but recommended)
+
+**Dockerfile Standards**:
+All workflows use `Dockerfile-liberica-multi-stage` by default for optimal image size and performance.
+
+**Manual Trigger Configuration**:
+To enable manual workflow triggers, add the following to any workflow file:
 
 - Push to ECR (.github/workflows/ci-dev.yml)
   - Trigger: push on master
